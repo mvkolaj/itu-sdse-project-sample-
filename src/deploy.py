@@ -3,6 +3,9 @@
 import json
 import shutil
 from pathlib import Path
+import os
+from datetime import datetime
+
 
 ARTIFACTS_DIR = Path("artifacts")
 DEPLOY_DIR = Path("deployment")
@@ -28,43 +31,35 @@ def load_selected_model_type() -> str:
     return data["selected_model"]
 
 
-def deploy_model():
+def deploy_model(best_model_type):
     """
-    Copies the best model into a deployment folder and writes deployment metadata.
+    Copies the selected model to a deployment folder and saves metadata.
     """
-    DEPLOY_DIR.mkdir(exist_ok=True)
+    os.makedirs("deployment", exist_ok=True)
 
-    model_type = load_selected_model_type()
-
-    if model_type == "logreg":
-        model_src = LR_MODEL
-        model_dest = DEPLOY_DIR / "model.pkl"
+    # Determine which model artifact to deploy
+    if best_model_type.lower() == "logreg":
+        source_path = "artifacts/lead_model_lr.pkl"
+        deployed_path = "deployment/production_model.pkl"
     else:
-        model_src = XGB_MODEL
-        model_dest = DEPLOY_DIR / "model.json"
+        source_path = "artifacts/lead_model_xgboost.json"
+        deployed_path = "deployment/production_model.json"
 
-    if not model_src.exists():
-        raise FileNotFoundError(f"Model file not found: {model_src}")
-
-    # Copy model to deployment folder
-    shutil.copy(model_src, model_dest)
+    # Copy model file
+    shutil.copy(source_path, deployed_path)
 
     # Save metadata
     metadata = {
-        "model_type": model_type,
-        "source_path": str(model_src),
-        "deployment_path": str(model_dest),
-        "ready": True,
+        "model_type": best_model_type,
+        "source_path": source_path,
+        "deployed_path": deployed_path,
+        "timestamp": str(datetime.now())
     }
 
-    with open(DEPLOY_DIR / "metadata.json", "w") as f:
+    with open("deployment/deployment_metadata.json", "w") as f:
         json.dump(metadata, f, indent=4)
 
-    print(f"\n=== MODEL DEPLOYED SUCCESSFULLY ===")
-    print(f"Selected model: {model_type}")
-    print(f"Copied to: {model_dest}")
-    print("Metadata saved to deployment/metadata.json")
-
+    print(f"✔ Deployed {best_model_type} model to: {deployed_path}")
     return metadata
 
 

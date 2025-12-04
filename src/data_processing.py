@@ -221,22 +221,20 @@ def run_data_processing(
 
     # 13. Binning object columns ('source' -> 'bin_source')
     if "source" in data.columns:
-        values_list = ["li", "organic", "signup", "fb"]
-        data["bin_source"] = data["source"]
-        data.loc[~data["source"].isin(values_list), "bin_source"] = "Others"
-
         mapping = {
             "li": "socials",
             "fb": "socials",
             "organic": "group1",
             "signup": "group1",
         }
-        data["bin_source"] = data["source"].map(mapping)
+
+        # default group
+        data["bin_source"] = data["source"].map(mapping).fillna("Others")
 
     # 14. Save gold dataset (train_data_gold.csv)
     gold_path = os.path.join(artifacts_dir, "train_data_gold.csv")
     data.to_csv(gold_path, index=False)
-    print(f"Saved train_data_gold.csv at {gold_path}")
+    print(f"✔ Saved train_data_gold.csv at {gold_path}")
 
     # 15. Return final processed dataframe
     return data

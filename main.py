@@ -1,79 +1,85 @@
 # main.py
-
 """
 Main pipeline entrypoint for the SDSE MLOps project.
 
-Pipeline steps:
+This script performs the FULL ML pipeline:
 1. Data Processing
 2. Model Training
 3. Model Evaluation
 4. Model Selection
 5. Deployment
 
-Each step writes artifacts into ./artifacts/ or ./deployment/.
+All modular logic lives inside /src/, and this file orchestrates the full workflow.
 """
 
-from data_processing import run_data_processing
-from model_training import run_model_training
-from model_evaluation import evaluate_model
-from model_selection import select_best_model
-from deploy import deploy_model
+from src.data_processing import run_data_processing
+from src.model_training import run_model_training
+from src.model_evaluation import evaluate_model
+from src.model_selection import select_best_model
+from src.deploy import deploy_model
 
 
 def main():
-
-    print("\n==============================")
+    print("\n====================================")
     print("STEP 1 — DATA PROCESSING")
-    print("==============================")
+    print("====================================")
 
-    processed_df = run_data_processing()
-    print(f"Data processing complete. Final dataset size: {processed_df.shape}")
+    df = run_data_processing()
+    print(f"✔ Data processing complete. Shape: {df.shape}")
 
 
-    print("\n==============================")
+    print("\n====================================")
     print("STEP 2 — MODEL TRAINING")
-    print("==============================")
+    print("====================================")
 
-    # Train models separately (LR + XGBoost)
-    # so we can compare them fairly
-    print("\nTraining Logistic Regression...")
+    print("→ Training Logistic Regression...")
     lr_model, X_test_lr, y_test_lr = run_model_training(model_type="logreg")
 
-    print("\nTraining XGBoost...")
+    print("\n→ Training XGBoost...")
     xgb_model, X_test_xgb, y_test_xgb = run_model_training(model_type="xgboost")
 
 
-    print("\n==============================")
+    print("\n====================================")
     print("STEP 3 — MODEL EVALUATION")
-    print("==============================")
+    print("====================================")
 
-    print("\nEvaluating Logistic Regression...")
-    lr_metrics = evaluate_model(lr_model, X_test_lr, y_test_lr, model_type="logreg")
+    print("\n→ Evaluating Logistic Regression...")
+    lr_metrics = evaluate_model(
+        model=lr_model,
+        X_test=X_test_lr,
+        y_test=y_test_lr,
+        model_type="logreg"
+    )
 
-    print("\nEvaluating XGBoost...")
-    xgb_metrics = evaluate_model(xgb_model, X_test_xgb, y_test_xgb, model_type="xgboost")
+    print("\n→ Evaluating XGBoost...")
+    xgb_metrics = evaluate_model(
+        model=xgb_model,
+        X_test=X_test_xgb,
+        y_test=y_test_xgb,
+        model_type="xgboost"
+    )
 
 
-    print("\n==============================")
+    print("\n====================================")
     print("STEP 4 — MODEL SELECTION")
-    print("==============================")
+    print("====================================")
 
     best_model_type = select_best_model()
-    print(f"Best model selected: {best_model_type.upper()}")
+    print(f"✔ Best model selected: {best_model_type.upper()}")
 
 
-    print("\n==============================")
+    print("\n====================================")
     print("STEP 5 — DEPLOYMENT")
-    print("==============================")
+    print("====================================")
 
-    deploy_metadata = deploy_model()
-    print("\nDeployment complete.")
-    print("Deployment metadata:", deploy_metadata)
+    metadata = deploy_model(best_model_type=best_model_type)
+    print("✔ Deployment complete.")
+    print("Deployment metadata:", metadata)
 
 
-    print("\n==============================")
-    print("PIPELINE COMPLETED SUCCESSFULLY")
-    print("==============================\n")
+    print("\n====================================")
+    print("PIPELINE FINISHED SUCCESSFULLY ")
+    print("====================================\n")
 
 
 if __name__ == "__main__":
