@@ -11,12 +11,28 @@ This script performs the FULL ML pipeline:
 
 All modular logic lives inside /src/, and this file orchestrates the full workflow.
 """
+import os
+os.environ["NO_AT_BRIDGE"] = "1"
+os.environ["PYTHONMALLOC"] = "malloc"
+os.environ["FORCE_IDLE_SHUTDOWN"] = "1"
+
+# Disable parallelism globally
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
+import warnings
+warnings.filterwarnings("ignore")
 
 from src.data_processing import run_data_processing
 from src.model_training import run_model_training
 from src.model_evaluation import evaluate_model
 from src.model_selection import select_best_model
 from src.deploy import deploy_model
+
+
 
 
 def main():
