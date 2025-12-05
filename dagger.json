@@ -1,5 +1,5 @@
 {
-  "name": "itu-sdse-project-sample-",
+  "name": "mlops-pipeline",
   "engineVersion": "v0.19.7",
   "sdk": {
     "source": "go"

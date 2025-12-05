@@ -1,4 +1,4 @@
-// A generated module for ItuSdseProjectSample functions
+// A generated module for MlopsPipeline functions
 //
 // This module has been generated via dagger init and serves as a reference to
 // basic module structure as you get started with Dagger.
@@ -16,18 +16,18 @@ package main
 
 import (
 	"context"
-	"dagger/itu-sdse-project-sample-/internal/dagger"
+	"dagger/mlops-pipeline/internal/dagger"
 )
 
-type ItuSdseProjectSample struct{}
+type MlopsPipeline struct{}
 
 // Returns a container that echoes whatever string argument is provided
-func (m *ItuSdseProjectSample) ContainerEcho(stringArg string) *dagger.Container {
+func (m *MlopsPipeline) ContainerEcho(stringArg string) *dagger.Container {
 	return dag.Container().From("alpine:latest").WithExec([]string{"echo", stringArg})
 }
 
 // Returns lines that match a pattern in the files of the provided Directory
-func (m *ItuSdseProjectSample) GrepDir(ctx context.Context, directoryArg *dagger.Directory, pattern string) (string, error) {
+func (m *MlopsPipeline) GrepDir(ctx context.Context, directoryArg *dagger.Directory, pattern string) (string, error) {
 	return dag.Container().
 		From("alpine:latest").
 		WithMountedDirectory("/mnt", directoryArg).
