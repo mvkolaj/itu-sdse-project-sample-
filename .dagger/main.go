@@ -1,37 +1,27 @@
-// A generated module for MlopsPipeline functions
-//
-// This module has been generated via dagger init and serves as a reference to
-// basic module structure as you get started with Dagger.
-//
-// Two functions have been pre-created. You can modify, delete, or add to them,
-// as needed. They demonstrate usage of arguments and return types using simple
-// echo and grep commands. The functions can be called from the dagger CLI or
-// from one of the SDKs.
-//
-// The first line in this comment block is a short description line and the
-// rest is a long description with more detail on the module's purpose or usage,
-// if appropriate. All modules should have a short description.
-
 package main
 
 import (
 	"context"
+
 	"dagger/mlops-pipeline/internal/dagger"
 )
 
 type MlopsPipeline struct{}
 
-// Returns a container that echoes whatever string argument is provided
-func (m *MlopsPipeline) ContainerEcho(stringArg string) *dagger.Container {
-	return dag.Container().From("alpine:latest").WithExec([]string{"echo", stringArg})
+// Train runs the full Python MLOps pipeline inside Dagger
+func (m *MlopsPipeline) Train(ctx context.Context) (string, error) {
+
+	ctr := dag.Container().
+		From("python:3.10").
+		WithMountedDirectory("/src", dag.Host().Directory(".")).
+		WithWorkdir("/src").
+		WithExec([]string{"pip", "install", "-r", "notebooks/requirements.txt"}).
+		WithExec([]string{"python", "main.py"})
+
+	return ctr.Stdout(ctx)
 }
 
-// Returns lines that match a pattern in the files of the provided Directory
-func (m *MlopsPipeline) GrepDir(ctx context.Context, directoryArg *dagger.Directory, pattern string) (string, error) {
-	return dag.Container().
-		From("alpine:latest").
-		WithMountedDirectory("/mnt", directoryArg).
-		WithWorkdir("/mnt").
-		WithExec([]string{"grep", "-R", pattern, "."}).
-		Stdout(ctx)
+// Dagger automatically creates a CLI for this module
+func main() {
+	dagger.Serve(&MlopsPipeline{})
 }
