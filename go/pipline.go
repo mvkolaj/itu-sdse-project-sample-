@@ -16,26 +16,24 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	// 1️⃣ Connect to Dagger
 	client, err := dagger.Connect(ctx, dagger.WithLogOutput(log.Writer()))
 	if err != nil {
 		return err
 	}
 	defer client.Close()
 
-	// 2️⃣ Python container running main.py from repo root
+	// 🔽 REPLACE this string with your actual repo root from `pwd`
+	hostRepo := client.Host().Directory("/Users/mikolajandrzejewski/Documents/GitHub/itu-sdse-project-sample")
+
 	python := client.Container().
 		From("python:3.10").
-		// mount repo root at /src
-		WithMountedDirectory("/src", client.Host().Directory(".")).
-		// set working directory to /src
+		WithMountedDirectory("/src", hostRepo).
+		WithExec([]string{"ls", "-R", "/src"}).
 		WithWorkdir("/src").
-		// now this path is correct because cwd is /src
 		WithExec([]string{"python", "-m", "pip", "install", "--upgrade", "pip"}).
-		WithExec([]string{"pip", "install", "-r", "requirements.txt"}).
+		WithExec([]string{"pip", "install", "-r", "/src/requirements.txt"}).
 		WithExec([]string{"python", "main.py"})
 
-	// 3️⃣ Sync outputs (artifacts, deployment, model file) back to host
 	_, err = python.Sync(ctx)
 	return err
 }
