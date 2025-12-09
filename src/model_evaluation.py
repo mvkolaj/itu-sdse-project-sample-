@@ -17,30 +17,15 @@ ARTIFACTS_DIR.mkdir(exist_ok=True)
 
 
 def evaluate_model(model, X_test, y_test, model_type="logreg"):
-    """
-    Unified evaluation function for both Logistic Regression and XGBoost.
 
-    Parameters:
-        model: trained model object
-        X_test: pd.DataFrame with test features
-        y_test: pd.Series with test labels
-        model_type: "logreg" or "xgboost"
-
-    Returns:
-        metrics: dict with accuracy, f1, and full classification report
-    """
-
-    # ---- Predict ----
     preds = model.predict(X_test)
 
-    # ---- Compute metrics ----
     acc = accuracy_score(y_test, preds)
     f1 = f1_score(y_test, preds, average="binary")
 
     report_dict = classification_report(y_test, preds, output_dict=True)
     conf = confusion_matrix(y_test, preds).tolist()
 
-    # ---- Organize metrics ----
     metrics = {
         "model_type": model_type,
         "accuracy": acc,
@@ -49,7 +34,6 @@ def evaluate_model(model, X_test, y_test, model_type="logreg"):
         "classification_report": report_dict,
     }
 
-    # ---- Save metrics to artifacts ----
     output_path = ARTIFACTS_DIR / f"{model_type}_evaluation.json"
     with output_path.open("w") as f:
         json.dump(metrics, f, indent=4)

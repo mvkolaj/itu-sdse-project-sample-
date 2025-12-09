@@ -11,10 +11,6 @@ SELECTED_MODEL_PATH = ARTIFACTS_DIR / "selected_model.json"
 
 
 def load_metrics(file_path: Path) -> dict:
-    """
-    Safely load metrics JSON.
-    Returns None if the file doesn't exist.
-    """
     if not file_path.exists():
         return None
 
@@ -23,22 +19,13 @@ def load_metrics(file_path: Path) -> dict:
 
 
 def select_best_model() -> str:
-    """
-    Selects the best model based on evaluation JSON files.
-    Priority metric:
-        1) F1 score
-        2) Accuracy (as tiebreaker)
-    Returns:
-        "logreg" or "xgboost"
-    """
 
     logreg_metrics = load_metrics(LOGREG_EVAL)
     xgb_metrics = load_metrics(XGB_EVAL)
 
     if logreg_metrics is None and xgb_metrics is None:
-        raise RuntimeError("No evaluation files found for model selection!")
+        raise RuntimeError("No evaluation files found for model selection.")
 
-    # Extract metrics
     def get_scores(metrics):
         if metrics is None:
             return (0, 0)
@@ -54,16 +41,13 @@ def select_best_model() -> str:
     print(f"LogReg → F1: {logreg_f1:.4f}, Acc: {logreg_acc:.4f}")
     print(f"XGBoost → F1: {xgb_f1:.4f}, Acc: {xgb_acc:.4f}")
 
-    # Decision rule
     if xgb_f1 > logreg_f1:
         best = "xgboost"
     elif logreg_f1 > xgb_f1:
         best = "logreg"
     else:
-        # tie — break with accuracy
         best = "xgboost" if xgb_acc >= logreg_acc else "logreg"
 
-    # Save selection
     with SELECTED_MODEL_PATH.open("w") as f:
         json.dump({"selected_model": best}, f, indent=4)
 

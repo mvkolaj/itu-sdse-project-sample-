@@ -27,7 +27,6 @@ def load_selected_model_type() -> str:
 def deploy_model(best_model_type: str):
     os.makedirs(DEPLOY_DIR, exist_ok=True)
 
-    # Determine which model artifact to deploy
     if best_model_type.lower() == "logreg":
         source_path = LR_MODEL
         deployed_path = DEPLOY_DIR / "production_model.pkl"
@@ -35,10 +34,8 @@ def deploy_model(best_model_type: str):
         source_path = XGB_MODEL
         deployed_path = DEPLOY_DIR / "production_model.json"
 
-    # Copy model file into deployment folder
     shutil.copy(source_path, deployed_path)
 
-    # Save metadata
     metadata = {
         "model_type": best_model_type,
         "source_path": str(source_path),
@@ -53,7 +50,7 @@ def deploy_model(best_model_type: str):
 
 
     model_dir = Path("model")
-    
+
     if model_dir.exists() and model_dir.is_file():
         model_dir.unlink()
 
@@ -70,5 +67,5 @@ def deploy_model(best_model_type: str):
         model_target.unlink()
 
     shutil.copy2(deployed_path, model_target)
-    print(f"✔ Canonical model artifact saved as: {model_target.resolve()}")
+    print(f"Canonical model artifact saved as: {model_target.resolve()}")
     return metadata

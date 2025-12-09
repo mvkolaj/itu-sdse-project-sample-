@@ -15,9 +15,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 
 def describe_numeric_col(x: pd.Series) -> pd.Series:
-    """
-    Descriptive stats for a numeric column.
-    """
+
     return pd.Series(
         [x.count(), x.isnull().count(), x.mean(), x.min(), x.max()],
         index=["Count", "Missing", "Mean", "Min", "Max"],
@@ -25,25 +23,15 @@ def describe_numeric_col(x: pd.Series) -> pd.Series:
 
 
 def impute_missing_values(x: pd.Series, method: str = "mean") -> pd.Series:
-    """
-    Impute missing values.
-    - numeric: mean or median
-    - non-numeric: mode
-    """
+    
     if (x.dtype == "float64") or (x.dtype == "int64"):
         if method == "mean":
             x = x.fillna(x.mean())
         else:
             x = x.fillna(x.median())
     else:
-        # most frequent value
         x = x.fillna(x.mode()[0])
     return x
-
-
-# -------------------------------------------------------------------
-# Main pipeline function for data processing
-# -------------------------------------------------------------------
 
 def run_data_processing(
     raw_data_path: str = "data/raw/raw_data.csv",
@@ -51,36 +39,14 @@ def run_data_processing(
     min_date: Optional[str] = "2024-01-01",
     max_date: Optional[str] = "2024-01-31",
 ) -> pd.DataFrame:
-    """
-    Full data processing pipeline.
-
-    Steps:
-    1. Ensure artifacts directory exists.
-    2. Load raw data.
-    3. Filter by date range.
-    4. Feature selection (drop unused columns).
-    5. Clean invalid rows (target/ID empty, filter source == 'signup').
-    6. Cast selected columns to object.
-    7. Split into continuous and categorical vars.
-    8. Clip outliers in continuous vars.
-    9. Impute missing values (cat + cont).
-    10. Scale continuous vars and save scaler.
-    11. Combine cat + cont into one dataframe.
-    12. Save drift columns + training_data.csv.
-    13. Bin 'source' into 'bin_source'.
-    14. Save train_data_gold.csv.
-    15. Return the final processed dataframe.
-    """
-    # 1. Ensure artifacts directory exists
+    
     os.makedirs(artifacts_dir, exist_ok=True)
     print(f"Created artifacts directory at {artifacts_dir}")
 
-    # 2. Load raw data
     print("Loading training data...")
     data = pd.read_csv(raw_data_path)
     print("Total rows:", len(data))
 
-    # 3. Filter by date range
     if max_date:
         max_dt = pd.to_datetime(max_date).date()
     else:
@@ -102,7 +68,6 @@ def run_data_processing(
         json.dump(date_limits, f)
     print("Saved date_limits.json")
 
-    # 4. Feature selection (drop unused columns)
     data = data.drop(
         [
             "is_active",
@@ -119,7 +84,6 @@ def run_data_processing(
         axis=1,
     )
 
-    # 5. Data cleaning: remove rows with empty target / invalid IDs, filter source
     data["lead_indicator"].replace("", np.nan, inplace=True)
     data["lead_id"].replace("", np.nan, inplace=True)
     data["customer_code"].replace("", np.nan, inplace=True)
@@ -127,16 +91,13 @@ def run_data_processing(
     data = data.dropna(axis=0, subset=["lead_indicator"])
     data = data.dropna(axis=0, subset=["lead_id"])
 
-    # Filter: only signup as source
     data = data[data["source"] == "signup"]
 
-    # Optional: print target distribution
     result = data["lead_indicator"].value_counts(normalize=True)
     print("Target value counter")
     for val, n in zip(result.index, result):
         print(val, ": ", n)
 
-    # 6. Set some columns explicitly as object
     obj_cols = [
         "lead_id",
         "lead_indicator",
@@ -150,7 +111,6 @@ def run_data_processing(
             data[col] = data[col].astype("object")
             print(f"Changed {col} to object type")
 
-    # 7. Separate continuous and categorical columns
     cont_vars = data.loc[:, (data.dtypes == "float64") | (data.dtypes == "int64")]
     cat_vars = data.loc[:, (data.dtypes == "object")]
 
@@ -159,7 +119,6 @@ def run_data_processing(
     print("\nCategorical columns:\n")
     pprint(list(cat_vars.columns), indent=4)
 
-    # 8. Outliers: clip continuous vars at mean ± 2 std
     if not cont_vars.empty:
         cont_vars = cont_vars.apply(
             lambda x: x.clip(
@@ -171,9 +130,7 @@ def run_data_processing(
         outlier_summary.to_csv(os.path.join(artifacts_dir, "outlier_summary.csv"))
         print("Saved outlier_summary.csv")
 
-    # 9. Impute missing values
 
-    # 9a. Categorical imputation: save mode values
     if not cat_vars.empty:
         cat_missing_impute = cat_vars.mode(numeric_only=False, dropna=True)
         cat_missing_impute.to_csv(
@@ -186,11 +143,9 @@ def run_data_processing(
 
         cat_vars = cat_vars.apply(impute_missing_values)
 
-    # 9b. Continuous vars missing values
     if not cont_vars.empty:
         cont_vars = cont_vars.apply(impute_missing_values)
 
-    # 10. Data standardisation (MinMax scaling)
     scaler_path = os.path.join(artifacts_dir, "scaler.pkl")
     if not cont_vars.empty:
         scaler = MinMaxScaler()
@@ -201,13 +156,11 @@ def run_data_processing(
             scaler.transform(cont_vars), columns=cont_vars.columns
         )
 
-    # 11. Combine categorical & continuous into single dataframe
     cont_vars = cont_vars.reset_index(drop=True)
     cat_vars = cat_vars.reset_index(drop=True)
     data = pd.concat([cat_vars, cont_vars], axis=1)
     print(f"Data cleansed and combined.\nRows: {len(data)}")
 
-    # 12. Data drift artifact: save columns and training_data.csv
     data_columns = list(data.columns)
     with open(os.path.join(artifacts_dir, "columns_drift.json"), "w+") as f:
         json.dump(data_columns, f)
@@ -216,7 +169,6 @@ def run_data_processing(
     data.to_csv(os.path.join(artifacts_dir, "training_data.csv"), index=False)
     print("Saved training_data.csv")
 
-    # 13. Binning object columns ('source' -> 'bin_source')
     if "source" in data.columns:
         mapping = {
             "li": "socials",
@@ -225,13 +177,10 @@ def run_data_processing(
             "signup": "group1",
         }
 
-        # default group
         data["bin_source"] = data["source"].map(mapping).fillna("Others")
 
-    # 14. Save gold dataset (train_data_gold.csv)
     gold_path = os.path.join(artifacts_dir, "train_data_gold.csv")
     data.to_csv(gold_path, index=False)
     print(f"✔ Saved train_data_gold.csv at {gold_path}")
 
-    # 15. Return final processed dataframe
     return data
