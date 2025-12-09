@@ -53,9 +53,12 @@ def deploy_model(best_model_type: str):
 
 
     model_dir = Path("model")
+    
+    if model_dir.exists() and model_dir.is_file():
+        model_dir.unlink()
+
     model_dir.mkdir(exist_ok=True)
 
-    # Decide canonical filename inside model/
     if deployed_path.suffix == ".pkl":
         canonical_name = "model.pkl"
     else:
@@ -63,7 +66,6 @@ def deploy_model(best_model_type: str):
 
     model_target = model_dir / canonical_name
 
-    # Remove old canonical file if present
     if model_target.exists():
         model_target.unlink()
 
