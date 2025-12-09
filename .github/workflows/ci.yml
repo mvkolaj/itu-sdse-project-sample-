@@ -27,6 +27,11 @@ jobs:
           verb: run
           args: go run pipline.go
           version: "0.19.6"
+      
+      - name: Validate model
+        uses: lasselundstenjensen/itu-sdse-project-model-validator@vmain
+        with:
+          model-path: model
 
       - name: Upload trained model
         uses: actions/upload-artifact@v4

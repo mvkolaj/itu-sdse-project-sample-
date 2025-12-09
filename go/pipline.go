@@ -10,9 +10,9 @@ import (
 func main() {
 	ctx := context.Background()
 	if err := run(ctx); err != nil {
-		log.Fatalf("❌ Dagger pipeline failed: %v", err)
+		log.Fatalf("Dagger pipeline failed: %v", err)
 	}
-	log.Println("✅ Dagger pipeline completed successfully!")
+	log.Println("Dagger pipeline completed successfully!")
 }
 
 func run(ctx context.Context) error {
