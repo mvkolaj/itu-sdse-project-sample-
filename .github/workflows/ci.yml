@@ -32,7 +32,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: model
-          path: model
+          path: model/
 
   test:
     runs-on: ubuntu-latest
@@ -45,7 +45,8 @@ jobs:
       - name: Download model artifact
         uses: actions/download-artifact@v4
         with:
-          name: model      
+          name: model
+          path: .      
 
       - name: Validate model
         uses: lasselundstenjensen/itu-sdse-project-model-validator@main

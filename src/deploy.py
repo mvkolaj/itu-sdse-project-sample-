@@ -51,14 +51,22 @@ def deploy_model(best_model_type: str):
 
     print(f"✔ Deployed {best_model_type} model to: {deployed_path}")
 
-    # ✅ Create canonical artifact named 'model' in repo root
-    model_target = Path("model")
+
+    model_dir = Path("model")
+    model_dir.mkdir(exist_ok=True)
+
+    # Decide canonical filename inside model/
+    if deployed_path.suffix == ".pkl":
+        canonical_name = "model.pkl"
+    else:
+        canonical_name = "model.json"
+
+    model_target = model_dir / canonical_name
+
+    # Remove old canonical file if present
     if model_target.exists():
-        if model_target.is_file():
-            model_target.unlink()
-        else:
-            shutil.rmtree(model_target)
+        model_target.unlink()
+
     shutil.copy2(deployed_path, model_target)
     print(f"✔ Canonical model artifact saved as: {model_target.resolve()}")
-
     return metadata
