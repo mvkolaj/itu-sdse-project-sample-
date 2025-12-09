@@ -39,5 +39,4 @@ The repository is organized as follows:
 ---
 
 ## Authors
-Zofia Brodewicz (zobr@itu.dk)
-Mikolaj Andrzejewski (mikoa@itu.dk)
+Zofia Brodewicz (zobr@itu.dk) and Mikolaj Andrzejewski (mikoa@itu.dk)
