@@ -2,13 +2,14 @@ name: MLOps Pipeline (Go + Dagger)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
-  pipeline:
+  train:
+    name: Training pipeline
     runs-on: ubuntu-latest
 
     steps:
@@ -34,16 +35,45 @@ jobs:
       - name: Set up DVC
         uses: iterative/setup-dvc@v1
 
-      - name: Run Dagger pipeline (Go)
+      - name: Run Dagger training pipeline
         uses: dagger/dagger-for-github@v8.2.0
         with:
-          workdir: go
           verb: run
-          args: go run pipeline.go
+          args: go run go/pipeline.go
           version: "0.19.6"
 
-      - name: Upload artifacts
+      - name: Upload training artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ml-artifacts
+          name: training-artifacts
           path: artifacts/
+
+  validate:
+    name: Validation pipeline
+    needs: train
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download training artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: training-artifacts
+          path: artifacts/
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run model evaluation only
+        run: |
+          export PYTHONPATH=src
+          python src/model_evaluation.py
