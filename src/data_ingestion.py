@@ -1,90 +1,68 @@
-import argparse
-import datetime
-import json
+# src/data_ingestion.py
+
 import subprocess
+import json
+import datetime
 from pathlib import Path
 
 import pandas as pd
 import mlflow
 
-from paths import (
-    PROJECT_ROOT,
-    RAW_DATA_FILE,
-    DATE_FILTERED_DATA_FILE,
-    DATE_LIMITS_FILE,
-)
+# Project paths
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = PROJECT_ROOT / "data"
+ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
 
-def pull_data_from_dvc():
-    dvc_dir = PROJECT_ROOT / ".dvc"
-
-    if not dvc_dir.exists():
-        print("No .dvc directory found — skipping DVC pull.")
-        return
-
-    try:
-        subprocess.run(
-            ["dvc", "update", "data/raw_data.csv.dvc"],
-            check=True,
-            cwd=PROJECT_ROOT,
-        )
-        subprocess.run(
-            ["dvc", "pull"],
-            check=True,
-            cwd=PROJECT_ROOT,
-        )
-        print("DVC pull completed.")
-    except Exception as exc:
-        print("DVC pull failed — continuing without it.")
-        print(f"Reason: {exc}")
+RAW_DATA_FILE = DATA_DIR / "raw_data.csv"
+DATE_FILTERED_DATA_FILE = DATA_DIR / "date_filtered_data.csv"
+DATE_LIMITS_FILE = ARTIFACTS_DIR / "date_limits.json"
 
 
-def parse_date_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--min_date", type=str, default=None)
-    parser.add_argument("--max_date", type=str, default=None)
-    args = parser.parse_args()
-
-    min_date = (
-        pd.to_datetime(args.min_date).date()
-        if args.min_date
-        else pd.to_datetime("2024-01-01").date()
+def pull_data_from_dvc() -> None:
+    """Pull raw dataset using DVC."""
+    print("Pulling data from DVC")
+    subprocess.run(
+        ["dvc", "pull"],
+        check=True,
+        cwd=PROJECT_ROOT
     )
-
-    max_date = (
-        pd.to_datetime(args.max_date).date()
-        if args.max_date
-        else datetime.datetime.now().date()
-    )
-
-    return min_date, max_date
 
 
 def filter_by_date(
     df: pd.DataFrame,
     min_date: datetime.date,
-    max_date: datetime.date,
+    max_date: datetime.date
 ) -> pd.DataFrame:
+    """Filter dataframe by date range."""
     df = df.copy()
     df["date_part"] = pd.to_datetime(df["date_part"]).dt.date
     return df[
-        (df["date_part"] >= min_date)
-        & (df["date_part"] <= max_date)
+        (df["date_part"] >= min_date) &
+        (df["date_part"] <= max_date)
     ]
 
 
-def main():
-    print("Pulling data from DVC")
+def main() -> None:
+    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # 1. Pull data
     pull_data_from_dvc()
 
+    if not RAW_DATA_FILE.exists():
+        raise FileNotFoundError(
+            "raw_data.csv not found after dvc pull"
+        )
+
+    # 2. Load data
     print("Loading raw dataset")
     data = pd.read_csv(RAW_DATA_FILE)
-    print("Total rows:", len(data))
+    print(f"Total rows: {len(data)}")
 
-    min_date, max_date = parse_date_args()
+    # 3. Date parameters (fixed defaults = deterministic)
+    min_date = datetime.date(2024, 1, 1)
+    max_date = datetime.date.today()
 
-    DATE_FILTERED_DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-    DATE_LIMITS_FILE.parent.mkdir(parents=True, exist_ok=True)
-
+    # 4. Track in MLflow
     with mlflow.start_run():
         mlflow.log_param("min_date", str(min_date))
         mlflow.log_param("max_date", str(max_date))
