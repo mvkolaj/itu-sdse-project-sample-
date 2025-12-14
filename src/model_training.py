@@ -1,5 +1,6 @@
 import datetime
 from pathlib import Path
+
 import pandas as pd
 import joblib
 import mlflow
@@ -28,29 +29,42 @@ def encode_categoricals(df: pd.DataFrame) -> pd.DataFrame:
 
     return df.astype("float64")
 
+
 def train_single_model(
     model_cls,
     params,
     X_train,
     y_train,
     model_path: Path,
-    run_name: str,
     autolog_module: str,
 ):
+    # Enable MLflow autologging (without auto model save)
     getattr(mlflow, autolog_module).autolog(log_models=False)
 
     model = model_cls(random_state=42)
-    grid = RandomizedSearchCV(
-        model, params, n_iter=10, cv=3, verbose=2
+    search = RandomizedSearchCV(
+        model,
+        params,
+        n_iter=10,
+        cv=3,
+        verbose=2,
+        random_state=42,
     )
-    grid.fit(X_train, y_train)
-    best = grid.best_estimator_
 
+    search.fit(X_train, y_train)
+    best = search.best_estimator_
+
+    # Save model correctly (sklearn-compatible)
+    joblib.dump(best, model_path)
+    mlflow.log_artifact(model_path)
+
+    # Optional: log LR as pyfunc
     if isinstance(best, LogisticRegression):
-        mlflow.pyfunc.log_model("model", python_model=LogisticRegressionAdapter(best))
-        joblib.dump(best, model_path)
-    else:
-        best.save_model(str(model_path))
+        mlflow.pyfunc.log_model(
+            artifact_path="model",
+            python_model=LogisticRegressionAdapter(best),
+        )
+
 
 def main():
     data = pd.read_csv(TRAIN_GOLD_FILE)
@@ -60,7 +74,11 @@ def main():
     X = data.drop(columns=["lead_indicator"])
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.15, random_state=42, stratify=y
+        X,
+        y,
+        test_size=0.15,
+        random_state=42,
+        stratify=y,
     )
 
     X_test.to_csv(X_TEST_FILE, index=False)
@@ -68,9 +86,7 @@ def main():
 
     experiment_name = datetime.datetime.now().strftime("%Y_%m_%d")
     mlflow.set_experiment(experiment_name)
-    experiment_id = mlflow.get_experiment_by_name(
-        experiment_name
-    ).experiment_id
+    experiment = mlflow.get_experiment_by_name(experiment_name)
 
     param_xgb = {
         "learning_rate": uniform(0.01, 0.3),
@@ -84,19 +100,26 @@ def main():
         "C": [0.1, 1, 10],
     }
 
-    with mlflow.start_run(experiment_id=experiment_id, run_name="xgb"):
+    with mlflow.start_run(experiment_id=experiment.experiment_id, run_name="xgb"):
         train_single_model(
-            XGBRFClassifier, param_xgb,
-            X_train, y_train, XGBOOST_MODEL_FILE,
-            "xgb", "xgboost"
+            XGBRFClassifier,
+            param_xgb,
+            X_train,
+            y_train,
+            XGBOOST_MODEL_FILE,
+            "xgboost",
         )
 
-    with mlflow.start_run(experiment_id=experiment_id, run_name="lr"):
+    with mlflow.start_run(experiment_id=experiment.experiment_id, run_name="lr"):
         train_single_model(
-            LogisticRegression, param_lr,
-            X_train, y_train, LR_MODEL_FILE,
-            "lr", "sklearn"
+            LogisticRegression,
+            param_lr,
+            X_train,
+            y_train,
+            LR_MODEL_FILE,
+            "sklearn",
         )
+
 
 if __name__ == "__main__":
     main()
