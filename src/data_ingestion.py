@@ -10,10 +10,6 @@ from urllib.request import urlretrieve
 import pandas as pd
 import mlflow
 
-
-# --------------------
-# Paths
-# --------------------
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
 ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
@@ -27,12 +23,7 @@ RAW_DATA_URL = (
     "Jeppe-T-K/itu-sdse-project-data/main/raw_data.csv"
 )
 
-
-# --------------------
-# Data access helpers
-# --------------------
 def pull_with_dvc() -> bool:
-    """Attempt to pull data using DVC."""
     try:
         subprocess.run(
             ["dvc", "pull"],
@@ -45,15 +36,11 @@ def pull_with_dvc() -> bool:
 
 
 def download_directly() -> None:
-    """Fallback download for CI environments."""
     print("Downloading raw dataset directly (CI fallback)")
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     urlretrieve(RAW_DATA_URL, RAW_DATA_FILE)
 
 
-# --------------------
-# Processing
-# --------------------
 def filter_dataset_by_date(
     df: pd.DataFrame,
     min_date: datetime.date,
@@ -66,14 +53,10 @@ def filter_dataset_by_date(
         & (df["date_part"] <= max_date)
     ]
 
-
-# --------------------
-# Main pipeline step
-# --------------------
 def main() -> None:
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    print("▶ Data ingestion started")
+    print("Data ingestion started")
 
     pulled = pull_with_dvc()
     if not pulled:
@@ -115,7 +98,7 @@ def main() -> None:
 
         mlflow.log_artifact(DATE_METADATA_FILE)
 
-    print("✔ Data ingestion completed successfully")
+    print("Data ingestion completed successfully")
 
 
 if __name__ == "__main__":
@@ -133,9 +116,6 @@ import pandas as pd
 import mlflow
 
 
-# --------------------
-# Paths
-# --------------------
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
 ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
@@ -150,11 +130,7 @@ RAW_DATA_URL = (
 )
 
 
-# --------------------
-# Data access helpers
-# --------------------
 def pull_with_dvc() -> bool:
-    """Attempt to pull data using DVC."""
     try:
         subprocess.run(
             ["dvc", "pull"],
@@ -167,15 +143,11 @@ def pull_with_dvc() -> bool:
 
 
 def download_directly() -> None:
-    """Fallback download for CI environments."""
     print("Downloading raw dataset directly (CI fallback)")
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     urlretrieve(RAW_DATA_URL, RAW_DATA_FILE)
 
 
-# --------------------
-# Processing
-# --------------------
 def filter_dataset_by_date(
     df: pd.DataFrame,
     min_date: datetime.date,
@@ -189,9 +161,6 @@ def filter_dataset_by_date(
     ]
 
 
-# --------------------
-# Main pipeline step
-# --------------------
 def main() -> None:
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
