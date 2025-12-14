@@ -10,6 +10,7 @@ ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
 RAW_DATA_FILE = DATA_DIR / "raw_data.csv"
 
 DATE_FILTERED_DATA_FILE = ARTIFACTS_DIR / "date_filtered_data.csv"
+TRAINING_DATA_FILE = ARTIFACTS_DIR / "training_data.csv"
 TRAIN_GOLD_FILE = ARTIFACTS_DIR / "train_data_gold.csv"
 
 X_TEST_FILE = ARTIFACTS_DIR / "X_test.csv"
