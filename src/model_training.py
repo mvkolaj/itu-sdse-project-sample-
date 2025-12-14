@@ -1,160 +1,102 @@
-# model_training.py
-
+import datetime
 from pathlib import Path
-from typing import Tuple, Literal
-
-import json
-import joblib
 import pandas as pd
-from scipy.stats import uniform, randint
-from sklearn.linear_model import LogisticRegression
+import joblib
+import mlflow
+
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.linear_model import LogisticRegression
+from scipy.stats import uniform, randint
 from xgboost import XGBRFClassifier
 
-
-ARTIFACTS_DIR = Path("artifacts")
-DATA_GOLD_PATH = ARTIFACTS_DIR / "train_data_gold.csv"
-COLUMNS_LIST_PATH = ARTIFACTS_DIR / "columns_list.json"
-
-
-
-def create_dummy_cols(df: pd.DataFrame, col: str) -> pd.DataFrame:
-    dummies = pd.get_dummies(df[col], prefix=col, drop_first=True)
-    new_df = pd.concat([df, dummies], axis=1)
-    new_df = new_df.drop(col, axis=1)
-    return new_df
+from paths import (
+    TRAIN_GOLD_FILE,
+    XGBOOST_MODEL_FILE,
+    LR_MODEL_FILE,
+    X_TEST_FILE,
+    Y_TEST_FILE,
+)
+from model_adapters import LogisticRegressionAdapter
 
 
-def prepare_training_data(
-    data_gold_path: Path = DATA_GOLD_PATH,
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
-    if not data_gold_path.exists():
-        raise FileNotFoundError(f"Gold data not found at {data_gold_path.resolve()}")
+def encode_categoricals(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.drop(["lead_id", "customer_code", "date_part"], axis=1)
+    categorical = ["customer_group", "onboarding", "bin_source", "source"]
 
-    data = pd.read_csv(data_gold_path)
-    print(f"Training data length: {len(data)}")
+    for col in categorical:
+        df = pd.get_dummies(df, columns=[col], drop_first=True)
 
-    for col in ["lead_id", "customer_code", "date_part"]:
-        if col in data.columns:
+    return df.astype("float64")
 
-            data = data.drop(columns=[col])
+def train_single_model(
+    model_cls,
+    params,
+    X_train,
+    y_train,
+    model_path: Path,
+    run_name: str,
+    autolog_module: str,
+):
+    getattr(mlflow, autolog_module).autolog(log_models=False)
 
-    cat_cols = ["customer_group", "onboarding", "bin_source", "source"]
-    cat_cols = [c for c in cat_cols if c in data.columns]
+    model = model_cls(random_state=42)
+    grid = RandomizedSearchCV(
+        model, params, n_iter=10, cv=3, verbose=2
+    )
+    grid.fit(X_train, y_train)
+    best = grid.best_estimator_
 
-    cat_vars = data[cat_cols].copy()
-    other_vars = data.drop(columns=cat_cols)
+    if isinstance(best, LogisticRegression):
+        mlflow.pyfunc.log_model("model", python_model=lr_wrapper(best))
+        joblib.dump(best, model_path)
+    else:
+        best.save_model(str(model_path))
 
-    for col in cat_vars.columns:
-        cat_vars[col] = cat_vars[col].astype("category")
-        cat_vars = create_dummy_cols(cat_vars, col)
-
-    data = pd.concat([other_vars, cat_vars], axis=1)
-
-    for col in data.columns:
-        try:
-            data[col] = data[col].astype("float64")
-        except Exception:
-            pass
-
-    if "lead_indicator" not in data.columns:
-        raise ValueError(
-            "Target column 'lead_indicator' not found in training data. "
-            f"Available columns: {list(data.columns)}"
-        )
+def main():
+    data = pd.read_csv(TRAIN_GOLD_FILE)
+    data = encode_categoricals(data)
 
     y = data["lead_indicator"]
     X = data.drop(columns=["lead_indicator"])
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, random_state=42, test_size=0.15, stratify=y
+        X, y, test_size=0.15, random_state=42, stratify=y
     )
 
-    return X_train, X_test, y_train, y_test
+    X_test.to_csv(X_TEST_FILE, index=False)
+    y_test.to_csv(Y_TEST_FILE, index=False)
 
+    experiment_name = datetime.datetime.now().strftime("%Y_%m_%d")
+    mlflow.set_experiment(experiment_name)
+    experiment_id = mlflow.get_experiment_by_name(
+        experiment_name
+    ).experiment_id
 
-def train_xgboost(
-    X_train: pd.DataFrame, y_train: pd.Series
-) -> Tuple[XGBRFClassifier, dict]:
-    
-    ARTIFACTS_DIR.mkdir(exist_ok=True)
-
-    model = XGBRFClassifier(random_state=42)
-
-    params = {
-        "learning_rate": uniform(1e-2, 3e-1),
+    param_xgb = {
+        "learning_rate": uniform(0.01, 0.3),
         "min_split_loss": uniform(0, 10),
         "max_depth": randint(3, 10),
         "subsample": uniform(0, 1),
-        "objective": ["reg:squarederror", "binary:logistic", "reg:logistic"],
-        "eval_metric": ["aucpr", "error"],
     }
 
-    grid = RandomizedSearchCV(
-        estimator=model,
-        param_distributions=params,
-        cv=10,
-        n_iter=10,
-        n_jobs=-1,
-        verbose=3,
-    )
-
-    grid.fit(X_train, y_train)
-    best_model = grid.best_estimator_
-
-    xgb_path = ARTIFACTS_DIR / "lead_model_xgboost.json"
-    best_model.save_model(str(xgb_path))
-
-    with COLUMNS_LIST_PATH.open("w") as f:
-        json.dump({"column_names": list(X_train.columns)}, f)
-
-    print("Saved XGBoost model to:", xgb_path)
-    print("Best params:", grid.best_params_)
-
-    return best_model, grid.best_params_
-
-
-def train_logistic_regression(
-    X_train: pd.DataFrame, y_train: pd.Series
-) -> Tuple[LogisticRegression, dict]:
-   
-    ARTIFACTS_DIR.mkdir(exist_ok=True)
-
-    model = LogisticRegression()
-
-    params = {
-        "solver": ["newton-cg", "lbfgs", "liblinear", "sag", "saga"],
-        "penalty": ["none", "l1", "l2", "elasticnet"],
-        "C": [100, 10, 1.0, 0.1, 0.01],
+    param_lr = {
+        "solver": ["lbfgs", "liblinear"],
+        "C": [0.1, 1, 10],
     }
 
-    grid = RandomizedSearchCV(model, params, cv=3, n_iter=10, verbose=3)
-    grid.fit(X_train, y_train)
+    with mlflow.start_run(experiment_id=experiment_id, run_name="xgb"):
+        train_single_model(
+            XGBRFClassifier, param_xgb,
+            X_train, y_train, XGBOOST_MODEL_FILE,
+            "xgb", "xgboost"
+        )
 
-    best_model = grid.best_estimator_
+    with mlflow.start_run(experiment_id=experiment_id, run_name="lr"):
+        train_single_model(
+            LogisticRegression, param_lr,
+            X_train, y_train, LR_MODEL_FILE,
+            "lr", "sklearn"
+        )
 
-    lr_path = ARTIFACTS_DIR / "lead_model_lr.pkl"
-    joblib.dump(best_model, lr_path)
-
-    with COLUMNS_LIST_PATH.open("w") as f:
-        json.dump({"column_names": list(X_train.columns)}, f)
-
-    print("Saved Logistic Regression model to:", lr_path)
-    print("Best params:", grid.best_params_)
-
-    return best_model, grid.best_params_
-
-
-def run_model_training(
-    model_type: Literal["logreg", "xgboost"] = "logreg",
-) -> Tuple[object, pd.DataFrame, pd.Series]:
-    
-    X_train, X_test, y_train, y_test = prepare_training_data()
-
-    if model_type == "xgboost":
-        model, best_params = train_xgboost(X_train, y_train)
-    else:
-        model, best_params = train_logistic_regression(X_train, y_train)
-
-    print(f"Training complete. Best params: {best_params}")
-    return model, X_test, y_test
+if __name__ == "__main__":
+    main()

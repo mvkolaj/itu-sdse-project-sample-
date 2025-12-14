@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/mikolajandrzejewski/Documents/GitHub/itu-sdse-project-sample/mlruns/0/60144866fbed47efa574ea50fad53780/artifacts
+end_time: 1765713729303
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 60144866fbed47efa574ea50fad53780
+run_name: welcoming-mouse-263
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1765713729257
+status: 3
+tags: []
+user_id: mikolajandrzejewski
