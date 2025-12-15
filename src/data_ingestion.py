@@ -23,17 +23,14 @@ RAW_DATA_URL = (
     "Jeppe-T-K/itu-sdse-project-data/main/raw_data.csv"
 )
 
-def pull_with_dvc() -> bool:
-    try:
-        subprocess.run(
-            ["dvc", "pull"],
-            check=True,
-            cwd=PROJECT_ROOT
-        )
-        return True
-    except subprocess.CalledProcessError:
-        return False
-
+def pull_with_dvc():
+    subprocess.run(
+        ["dvc", "update", "data/raw_data.csv.dvc"],
+        check=True, cwd=PROJECT_ROOT)
+    subprocess.run(
+        ["dvc", "pull"], 
+        check=True, cwd=PROJECT_ROOT)
+    return True
 
 def download_directly() -> None:
     print("Downloading raw dataset directly (CI fallback)")

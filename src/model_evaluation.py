@@ -31,7 +31,6 @@ def load_logistic_regression():
 
 
 def load_xgboost():
-    # ✅ FIX: load exactly how it was saved (joblib)
     return joblib.load(XGBOOST_MODEL_FILE)
 
 

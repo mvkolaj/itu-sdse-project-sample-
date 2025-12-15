@@ -38,7 +38,6 @@ def train_single_model(
     model_path: Path,
     autolog_module: str,
 ):
-    # Enable MLflow autologging (without auto model save)
     getattr(mlflow, autolog_module).autolog(log_models=False)
 
     model = model_cls(random_state=42)
