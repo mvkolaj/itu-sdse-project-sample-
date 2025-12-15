@@ -28,7 +28,7 @@ func main() {
 		"-m", "pip", "install", "-r", "requirements.txt",
 	)
 
-	runStep("Data ingestion", "python", "src/data_ingestion.py")
+	runStep("Data ingestion", "python", "src/data_preprocessing.py")
 	runStep("Feature engineering", "python", "src/data_features.py")
 	runStep("Model training", "python", "src/model_training.py")
 	runStep("Model evaluation", "python", "src/model_evaluation.py")
