@@ -58,23 +58,16 @@ def select_best_model(model_results: dict) -> str:
     return best_model
 
 
-def deploy_model(best_model: str):
-    
+def deploy_model():
+
     MODEL_DIR.mkdir(exist_ok=True)
 
     for f in MODEL_DIR.iterdir():
         f.unlink()
 
-    if best_model == "logistic_regression":
-        target = MODEL_DIR / "model.pkl"
-        joblib.dump(joblib.load(LOGISTIC_REGRESSION_MODEL_FILE), target)
-
-    elif best_model == "xgboost":
-        target = MODEL_DIR / "model.pkl"
-        joblib.dump(joblib.load(XGBOOST_MODEL_FILE), target)
-
-    else:
-        raise ValueError(f"Unknown model type: {best_model}")
+    target = MODEL_DIR / "model.pkl"
+    model = joblib.load(LOGISTIC_REGRESSION_MODEL_FILE)
+    joblib.dump(model, target)
 
     print(f"Model deployed to: {target.resolve()}")
 
@@ -98,8 +91,8 @@ def evaluation_pipeline():
 
     save_columns_and_results(X_test, model_results)
 
-    best_model = select_best_model(model_results)
-    deploy_model(best_model)
+    select_best_model(model_results) 
+    deploy_model()                  
 
     print("Evaluation and deployment completed successfully.")
 
