@@ -40,15 +40,9 @@ The repository is organized as follows:
 │
 ├── README.md                                   <- Project documentation
 ├── requirements.txt                            <- Python dependencies
+```
 
-
-
-
----
 ## How to Run Locally 
-
-Prerequisites
-
 Make sure the following tools are installed on your machine:
 
 **Docker Desktop:** Must be installed and running (required by Dagger).
