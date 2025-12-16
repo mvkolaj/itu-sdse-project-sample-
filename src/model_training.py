@@ -15,7 +15,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
 
 TRAINING_GOLD_DATA_FILE = ARTIFACTS_DIR / "training_data_gold.csv"
-XGBOOST_MODEL_FILE = ARTIFACTS_DIR / "xgboost_model.json"
+XGBOOST_MODEL_FILE = ARTIFACTS_DIR / "xgboost_model.pkl"
 LOGISTIC_REGRESSION_MODEL_FILE = ARTIFACTS_DIR / "logistic_regression_model.pkl"
 X_TEST_FILE = ARTIFACTS_DIR / "X_test.csv"
 Y_TEST_FILE = ARTIFACTS_DIR / "y_test.csv"

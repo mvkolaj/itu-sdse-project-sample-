@@ -22,11 +22,6 @@ func runStep(name string, command string, args ...string) {
 }
 
 func main() {
-	runStep(
-		"Install Python dependencies",
-		"python",
-		"-m", "pip", "install", "-r", "requirements.txt",
-	)
 
 	runStep("Data ingestion", "python", "src/data_preprocessing.py")
 	runStep("Feature engineering", "python", "src/data_features.py")
