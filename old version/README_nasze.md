@@ -40,7 +40,9 @@ The repository is organized as follows:
 │
 ├── README.md                                   <- Project documentation
 ├── requirements.txt                            <- Python dependencies
+```
 
+<<<<<<< HEAD
 
 
 
@@ -78,6 +80,9 @@ The pipeline is designed to run automatically through GitHub Actions, but it can
 
 Prerequisites
 
+=======
+## How to Run Locally 
+>>>>>>> 58288a9b65cd18e7d8a5017317d947f1a879d4c3
 Make sure the following tools are installed on your machine:
 
 **Docker Desktop:** Must be installed and running (required by Dagger).
