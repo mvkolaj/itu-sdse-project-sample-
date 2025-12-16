@@ -84,3 +84,5 @@ jobs:
         with:
           name: model
           path: model/
+      - name: Run Model Inference Test Action
+        uses: lasselundstenjensen/itu-sdse-project-model-validator@main
