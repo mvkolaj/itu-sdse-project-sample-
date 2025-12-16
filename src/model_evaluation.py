@@ -14,7 +14,7 @@ MODEL_DIR = PROJECT_ROOT / "model"
 X_TEST_FILE = ARTIFACTS_DIR / "X_test.csv"
 Y_TEST_FILE = ARTIFACTS_DIR / "y_test.csv"
 LOGISTIC_REGRESSION_MODEL_FILE = ARTIFACTS_DIR / "logistic_regression_model.pkl"
-XGBOOST_MODEL_FILE = ARTIFACTS_DIR / "xgboost_model.json"
+XGBOOST_MODEL_FILE = ARTIFACTS_DIR / "xgboost_model.pkl"
 FEATURE_COLUMN_LIST_FILE = ARTIFACTS_DIR / "feature_column_list.json"
 MODEL_RESULTS_FILE = ARTIFACTS_DIR / "model_results.json"
 
@@ -70,8 +70,8 @@ def deploy_model(best_model: str):
         joblib.dump(joblib.load(LOGISTIC_REGRESSION_MODEL_FILE), target)
 
     elif best_model == "xgboost":
-        target = MODEL_DIR / "model.json"
-        target.write_bytes(XGBOOST_MODEL_FILE.read_bytes())
+        target = MODEL_DIR / "model.pkl"
+        joblib.dump(joblib.load(XGBOOST_MODEL_FILE), target)
 
     else:
         raise ValueError(f"Unknown model type: {best_model}")
